@@ -1,0 +1,14 @@
+hostname: ubuntu
+os: Linux-6.8.0-138-generic-x86_64-with-glibc2.35
+python: 3.10.12
+cpu: 11th Gen Intel(R) Core(TM) i7-1195G7 @ 2.90GHz
+ram_gb: 15.4
+logical_cpus: 8
+cpus_allocated: 8
+physical_cores: 4
+threads_used: 4
+numpy: 2.1.1
+faiss: 1.15.1
+h5py: 3.16.0
+hnswlib: not installed
+matplotlib: 3.10.1

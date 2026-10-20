@@ -1,0 +1,6 @@
+faiss-cpu==1.15.1
+numpy==2.1.1
+h5py==3.16.0
+hnswlib
+matplotlib==3.10.1
+pytest

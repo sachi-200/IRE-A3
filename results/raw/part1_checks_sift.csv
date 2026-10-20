@@ -1,0 +1,2 @@
+dataset,n_base,identical_id_sets_frac,recall_ours_vs_file,recall_file_vs_ours,queries_with_real_diff,max_dist_gap,max_err_vs_stored_dists,queries_tied_at_10,machine
+sift,1000000,0.9935,1.0,1.0,0,0.0,1.5258570272180805e-05,137,gnode006

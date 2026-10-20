@@ -1,0 +1,13 @@
+hostname: gnode006
+os: Linux-5.15.0-194-generic-x86_64-with-glibc2.35
+python: 3.10.12
+cpu: Intel(R) Xeon(R) CPU E5-2640 v4 @ 2.40GHz
+ram_gb: 125.8
+logical_cpus: 40
+physical_cores: 4
+threads_used: 4
+numpy: 2.1.1
+faiss: 1.15.1
+h5py: 3.16.0
+hnswlib: installed
+matplotlib: 3.10.1
