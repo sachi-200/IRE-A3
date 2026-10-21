@@ -2,7 +2,7 @@
 |---|---|---|---|---|---|
 | sift | Exact (Flat) | 340.3 | recall 1.0 | 340.3 | recall 1.0 |
 | sift | HNSW | 18982.0 | M=32,efC=200, efSearch=16 (0.912) | 12765.2 | M=32,efC=200, efSearch=32 (0.972) |
-| sift | IVF-Flat | 6027.8 | nlist=1024, nprobe=32 (0.965) | 6027.8 | nlist=1024, nprobe=32 (0.965) |
+| sift | IVF-Flat | 8596.5 | nlist=1024, nprobe=32 (0.965) | 8596.5 | nlist=1024, nprobe=32 (0.965) |
 | sift | IVF-PQ | not reached | max tune recall 0.889 | not reached | max tune recall 0.889 |
 | glove | Exact (Flat) | 389.3 | recall 1.0 | 389.3 | recall 1.0 |
 | glove | HNSW | 3582.8 | M=16,efC=200, efSearch=128 (0.901) | 1951.6 | M=32,efC=200, efSearch=128 (0.951) |

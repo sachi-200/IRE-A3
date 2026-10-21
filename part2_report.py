@@ -110,7 +110,7 @@ def plot_dataset(ax, ds, pts_by_index, exact):
     ax.set_ylabel("queries per second (1 thread, log scale)", color=INK)
     n = pts_by_index[next(iter(pts_by_index))][0]["n_base"]
     name = {"sift": "SIFT", "glove": "GloVe-100"}.get(ds, ds)
-    ax.set_title(f"{name} ({n / 1e6:g}M vectors)" if n >= 1e6 else f"{name} ({n // 1000}K vectors)",
+    ax.set_title(f"{name} ({n / 1e6:.3g}M vectors)" if n >= 1e6 else f"{name} ({n // 1000}K vectors)",
                  color=INK)
     ax.grid(True, which="major", color=GRID, lw=0.6)
     ax.set_axisbelow(True)

@@ -1,0 +1,13 @@
+dataset,index,target_recall,setting,test_recall,qps
+sift,hnsw,0.9,"M=16,efC=200, efSearch=32",0.9181799999999999,8580.091312188539
+sift,hnsw,0.95,"M=16,efC=200, efSearch=64",0.9711599999999998,5099.406214207714
+sift,ivfflat,0.9,"nlist=4096, nprobe=32",0.9326399999999999,2329.959303285336
+sift,ivfflat,0.95,"nlist=16384, nprobe=128",0.97306,1361.4655553911305
+sift,ivfpq,0.9,,,
+sift,ivfpq,0.95,,,
+glove,hnsw,0.9,"M=32,efC=200, efSearch=192",0.9179200000000001,1281.9321658334593
+glove,hnsw,0.95,"M=32,efC=200, efSearch=384",0.9546,649.8836069994006
+glove,ivfflat,0.9,"nlist=16384, nprobe=512",0.92348,581.3266639416955
+glove,ivfflat,0.95,"nlist=16384, nprobe=1024",0.95616,320.64779399750466
+glove,ivfpq,0.9,,,
+glove,ivfpq,0.95,,,

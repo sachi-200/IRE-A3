@@ -4,6 +4,7 @@ python: 3.10.12
 cpu: Intel(R) Xeon(R) CPU E5-2640 v4 @ 2.40GHz
 ram_gb: 125.8
 logical_cpus: 40
+cpus_allocated: 8
 physical_cores: 4
 threads_used: 4
 numpy: 2.1.1

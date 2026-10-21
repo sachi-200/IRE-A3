@@ -2,7 +2,7 @@
 |---|---|---|---|---|---|---|---|
 | sift | Exact (Flat) | - | 0.02 | 51.2 | 512.0 | 1.0000 | 340.3 |
 | sift | HNSW | M=32,efC=200, efSearch=32 | 12.5 | 78.4 | 784.2 | 0.9720 | 12765.2 |
-| sift | IVF-Flat | nlist=1024, nprobe=32 | 2.3 | 52.5 | 525.3 | 0.9652 | 6027.8 |
+| sift | IVF-Flat | nlist=1024, nprobe=32 | 1.6 | 52.5 | 525.3 | 0.9652 | 8596.5 |
 | sift | IVF-PQ | nlist=256,m=64,nbits=8, nprobe=128 (best; 0.95 not reached) | 7.8 | 7.5 | 74.6 | 0.8912 | 307.4 |
 | glove | Exact (Flat) | - | 0.03 | 40.0 | 400.0 | 1.0000 | 389.3 |
 | glove | HNSW | M=32,efC=200, efSearch=128 | 25.7 | 67.2 | 672.2 | 0.9510 | 1951.6 |

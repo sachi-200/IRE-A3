@@ -25,7 +25,7 @@ BENCH_COLUMNS = [
     "part", "dataset", "n_base", "n_queries", "n_timed", "query_set",
     "index", "build_params", "search_params", "mode", "threads", "repeats",
     "recall_at_10", "qps", "ms_per_query", "build_s", "index_bytes", "bytes_per_vector",
-    "machine", "timestamp",
+    "load_avg", "machine", "timestamp",
 ]
 
 
@@ -60,6 +60,14 @@ def default_threads():
 
 def machine_name():
     return platform.node()
+
+
+def load_avg():
+    """1-minute load average of the whole machine (shows other users' jobs)."""
+    try:
+        return round(os.getloadavg()[0], 2)
+    except OSError:
+        return ""
 
 
 def timestamp():

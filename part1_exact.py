@@ -24,7 +24,7 @@ import common  # noqa: F401  (must come before faiss: sets OPENBLAS_NUM_THREADS)
 import faiss
 import numpy as np
 
-from common import (BENCH_COLUMNS, DATASETS, default_threads, machine_name,
+from common import (BENCH_COLUMNS, DATASETS, default_threads, load_avg, machine_name,
                     results_dir, timestamp, write_csv)
 from data import N_TUNE, exact_paths, load_dataset, test_split
 from recall import exact_distances, recall_at_k
@@ -149,16 +149,18 @@ def run(name, quick, single_n, repeats, threads):
     print(f"  -- timing on test queries {N_TUNE}..{len(queries) - 1} (k={K}, "
           f"median of {repeats}) --")
 
-    runs = []  # (mode, threads, n_queries, seconds)
+    runs = []  # (mode, threads, n_queries, load average before timing, seconds)
     faiss.omp_set_num_threads(1)
-    runs.append(("single", 1, n_single, time_single(index, q_test[:n_single], repeats)))
-    runs.append(("batch", 1, len(q_test), time_batch(index, q_test, repeats)))
+    runs.append(("single", 1, n_single, load_avg(),
+                 time_single(index, q_test[:n_single], repeats)))
+    runs.append(("batch", 1, len(q_test), load_avg(), time_batch(index, q_test, repeats)))
     if threads > 1:
         faiss.omp_set_num_threads(threads)
-        runs.append(("batch", threads, len(q_test), time_batch(index, q_test, repeats)))
+        runs.append(("batch", threads, len(q_test), load_avg(),
+                     time_batch(index, q_test, repeats)))
 
     rows = []
-    for mode, t, n, secs in runs:
+    for mode, t, n, load, secs in runs:
         per_q = secs / n
         print(f"  {mode:6s} {t:2d} thread(s), {n} q: {secs:8.2f}s  "
               f"{per_q * 1e3:8.3f} ms/q  {1 / per_q:9.1f} QPS")
@@ -169,7 +171,7 @@ def run(name, quick, single_n, repeats, threads):
             "recall_at_10": recall, "qps": 1 / per_q, "ms_per_query": per_q * 1e3,
             "build_s": build_s, "index_bytes": index_bytes,
             "bytes_per_vector": index_bytes / nb,
-            "machine": machine_name(), "timestamp": timestamp(),
+            "load_avg": load, "machine": machine_name(), "timestamp": timestamp(),
         })
     single_q = rows[0]["ms_per_query"]
     for r in rows[1:]:

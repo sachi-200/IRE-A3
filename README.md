@@ -46,8 +46,11 @@ Queries are split in half: the first 5,000 are used for tuning and the last
 
 Part 2 measures recall on all 5,000 queries of each half (with a
 multi-threaded batch search, which returns the same neighbours) and speed
-one query at a time on one thread, as the median of 3 runs over the first
-1,000 queries of each half (`--time-n`). Settings are chosen using tune-half
+one query at a time on one thread, as the median of 3 runs. The reported QPS
+times all 5,000 test queries (`--time-n-test`); the tune-half QPS, used only
+to choose settings, times the first 1,000 tune queries (`--time-n-tune`).
+Every timing row records the machine's 1-minute load average (`load_avg`),
+since runs were made on a shared node. Settings are chosen using tune-half
 numbers only (Pareto frontier, and the fastest setting reaching recall 0.90 /
 0.95); the reported values are the test-half numbers of those settings.
 A sweep stops early once tune recall reaches 0.99, stops improving, or the
@@ -84,3 +87,4 @@ python3 part2_report.py      # plots/tables from whatever has finished
 | `collect_results.py` | merges per-part CSVs into `results.csv`, writes `machine.txt` |
 | `hypothesis.md` | hypotheses for Parts 3 and 4, committed before running them |
 | `run_all.sh` | runs everything |
+| `run_part2_server.sh` | reruns Part 2 on the SLURM server (`bash` or `sbatch`), backing up old results |

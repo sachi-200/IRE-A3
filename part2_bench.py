@@ -9,7 +9,8 @@ For every (build setting, search parameter) point we measure:
     multi-threaded batch search (results are identical to one-at-a-time
     search; only the timing differs);
   * speed, one query at a time on a single thread, as the median of
-    --repeats runs over the first --time-n queries of each half.
+    --repeats runs: over all 5,000 test queries (the reported numbers), and
+    over the first 1,000 tune queries (only used to choose settings).
 
 The tune-half numbers are used to choose settings (part2_report.py); the
 test-half numbers are the ones reported.
@@ -32,7 +33,7 @@ import common  # noqa: F401  (must come before faiss: sets OPENBLAS_NUM_THREADS)
 import faiss
 import numpy as np
 
-from common import (BENCH_COLUMNS, DATASETS, default_threads, machine_name,
+from common import (BENCH_COLUMNS, DATASETS, default_threads, load_avg, machine_name,
                     results_dir, timestamp, write_csv)
 from data import load_dataset, load_exact, test_split, tune_split
 from recall import exact_distances, recall_at_k
@@ -176,7 +177,9 @@ def run_dataset(name, kinds, args, out):
                 faiss.omp_set_num_threads(1)
                 ms = {}
                 for half, (q, _) in halves.items():
-                    n = min(args.time_n, len(q))
+                    limit = args.time_n_tune if half == "tune" else args.time_n_test
+                    n = len(q) if limit <= 0 else min(limit, len(q))
+                    load = load_avg()
                     secs = time_one_at_a_time(index, q[:n], args.repeats)
                     ms[half] = secs / n * 1e3
                     rows.append({
@@ -187,7 +190,7 @@ def run_dataset(name, kinds, args, out):
                         "recall_at_10": float(recall[half]), "qps": 1e3 / ms[half],
                         "ms_per_query": ms[half], "build_s": build_s,
                         "index_bytes": index_bytes, "bytes_per_vector": index_bytes / nb,
-                        "machine": machine_name(), "timestamp": timestamp(),
+                        "load_avg": load, "machine": machine_name(), "timestamp": timestamp(),
                     })
                 print(f"    {key}={val:<5d} recall tune {recall['tune']:.4f} test "
                       f"{recall['test']:.4f}   {ms['test']:7.3f} ms/q  "
@@ -216,14 +219,20 @@ def main():
     p.add_argument("--indexes", nargs="+", default=INDEXES, choices=INDEXES)
     p.add_argument("--quick", action="store_true",
                    help="index only the first 100K vectors (for run_all.sh --quick)")
-    p.add_argument("--time-n", type=int, default=None,
-                   help="queries timed per half (default 1000; 100 with --quick)")
+    p.add_argument("--time-n-tune", type=int, default=None,
+                   help="tune queries timed, used only to choose settings "
+                        "(default 1000; 100 with --quick)")
+    p.add_argument("--time-n-test", type=int, default=None,
+                   help="test queries timed for the reported QPS "
+                        "(default 0 = all 5,000; 100 with --quick)")
     p.add_argument("--repeats", type=int, default=3, help="timing repeats (median)")
     p.add_argument("--threads", type=int, default=default_threads(),
                    help="threads for building and for the recall batch search")
     args = p.parse_args()
-    if args.time_n is None:
-        args.time_n = 100 if args.quick else 1000
+    if args.time_n_tune is None:
+        args.time_n_tune = 100 if args.quick else 1000
+    if args.time_n_test is None:
+        args.time_n_test = 100 if args.quick else 0
 
     out = results_dir(args.quick)
     for name in args.datasets:
