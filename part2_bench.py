@@ -138,18 +138,79 @@ def exact_single_ms(out, name):
     return None
 
 
-def run_dataset(name, kinds, args, out):
-    print(f"\n=== {name.upper()}{' (quick)' if args.quick else ''} ===")
+def load_context(name, args, out):
+    """Data, ground truth and the exact-search time that every sweep needs."""
     ds = load_dataset(name, args.quick)
     base, queries = ds["base"], ds["queries"]
-    nb = len(base)
     gt_I, _ = load_exact(name, args.quick)
     gt_d = exact_distances(queries, base, gt_I[:, :K])  # float64, all 10k queries
-    halves = {"tune": (tune_split(queries), tune_split(gt_d)),
-              "test": (test_split(queries), test_split(gt_d))}
-    exact_ms = exact_single_ms(out, name)
+    ctx = {"name": name, "base": base, "queries": queries, "nb": len(base),
+           "halves": {"tune": (tune_split(queries), tune_split(gt_d)),
+                      "test": (test_split(queries), test_split(gt_d))},
+           "exact_ms": exact_single_ms(out, name)}
+    exact_ms = ctx["exact_ms"]
     print(f"  base {base.shape}; exact single-query: "
           f"{f'{exact_ms:.2f} ms' if exact_ms else 'unknown (run part 1)'}")
+    return ctx
+
+
+def sweep(index, values, ctx, args, row_info, set_param=set_search_param):
+    """Measure index at each (key, value) until a stop rule fires.
+
+    row_info holds the per-build columns (part, index, build_params, build_s,
+    index_bytes, ...); returns two rows (tune, test) per measured point.
+    """
+    queries, base, halves = ctx["queries"], ctx["base"], ctx["halves"]
+    rows, history = [], []
+    for key, val in values:
+        set_param(index, key, val)
+
+        # Recall: batch search on all threads.
+        faiss.omp_set_num_threads(args.threads)
+        _, I = index.search(queries, K)
+        rec_d = exact_distances(queries, base, I)
+        recall = {"tune": recall_at_k(tune_split(rec_d), halves["tune"][1], K).mean(),
+                  "test": recall_at_k(test_split(rec_d), halves["test"][1], K).mean()}
+
+        # Speed: one query at a time, single thread.
+        faiss.omp_set_num_threads(1)
+        ms = {}
+        for half, (q, _) in halves.items():
+            limit = args.time_n_tune if half == "tune" else args.time_n_test
+            n = len(q) if limit <= 0 else min(limit, len(q))
+            load = load_avg()
+            secs = time_one_at_a_time(index, q[:n], args.repeats)
+            ms[half] = secs / n * 1e3
+            rows.append({
+                **row_info, "dataset": ctx["name"], "n_base": ctx["nb"],
+                "n_queries": len(q), "n_timed": n, "query_set": half,
+                "search_params": f"{key}={val}", "mode": "single", "threads": 1,
+                "repeats": args.repeats, "recall_at_10": float(recall[half]),
+                "qps": 1e3 / ms[half], "ms_per_query": ms[half],
+                "bytes_per_vector": row_info["index_bytes"] / ctx["nb"],
+                "load_avg": load, "machine": machine_name(), "timestamp": timestamp(),
+            })
+        print(f"    {key}={val:<5d} recall tune {recall['tune']:.4f} test "
+              f"{recall['test']:.4f}   {ms['test']:7.3f} ms/q  "
+              f"{1e3 / ms['test']:9.1f} QPS")
+
+        history.append(recall["tune"])
+        if recall["tune"] >= STOP_RECALL:
+            break
+        if (len(history) > PLATEAU_WINDOW
+                and abs(history[-1] - history[-1 - PLATEAU_WINDOW]) < PLATEAU_GAIN):
+            print("    (recall has plateaued; stopping sweep)")
+            break
+        if ctx["exact_ms"] is not None and ms["tune"] > ctx["exact_ms"]:
+            print("    (slower than exact search; stopping sweep)")
+            break
+    return rows
+
+
+def run_dataset(name, kinds, args, out):
+    print(f"\n=== {name.upper()}{' (quick)' if args.quick else ''} ===")
+    ctx = load_context(name, args, out)
+    nb = ctx["nb"]
 
     for kind in kinds:
         rows = []
@@ -157,56 +218,13 @@ def run_dataset(name, kinds, args, out):
         for p in builds_for(kind, name, args.quick):
             bstr = build_params_str(kind, p)
             faiss.omp_set_num_threads(args.threads)
-            index, build_s = build_index(kind, p, base)
+            index, build_s = build_index(kind, p, ctx["base"])
             index_bytes = int(faiss.serialize_index(index).nbytes)
             print(f"\n  [{kind} {bstr}] build {build_s:.1f}s ({args.threads} threads), "
                   f"{index_bytes / 1e6:.1f} MB, {index_bytes / nb:.1f} B/vector")
-
-            history = []
-            for key, val in sweep_values(kind, p):
-                set_search_param(index, key, val)
-
-                # Recall: batch search on all threads.
-                faiss.omp_set_num_threads(args.threads)
-                _, I = index.search(queries, K)
-                rec_d = exact_distances(queries, base, I)
-                recall = {"tune": recall_at_k(tune_split(rec_d), halves["tune"][1], K).mean(),
-                          "test": recall_at_k(test_split(rec_d), halves["test"][1], K).mean()}
-
-                # Speed: one query at a time, single thread.
-                faiss.omp_set_num_threads(1)
-                ms = {}
-                for half, (q, _) in halves.items():
-                    limit = args.time_n_tune if half == "tune" else args.time_n_test
-                    n = len(q) if limit <= 0 else min(limit, len(q))
-                    load = load_avg()
-                    secs = time_one_at_a_time(index, q[:n], args.repeats)
-                    ms[half] = secs / n * 1e3
-                    rows.append({
-                        "part": 2, "dataset": name, "n_base": nb, "n_queries": len(q),
-                        "n_timed": n, "query_set": half, "index": kind,
-                        "build_params": bstr, "search_params": f"{key}={val}",
-                        "mode": "single", "threads": 1, "repeats": args.repeats,
-                        "recall_at_10": float(recall[half]), "qps": 1e3 / ms[half],
-                        "ms_per_query": ms[half], "build_s": build_s,
-                        "index_bytes": index_bytes, "bytes_per_vector": index_bytes / nb,
-                        "load_avg": load, "machine": machine_name(), "timestamp": timestamp(),
-                    })
-                print(f"    {key}={val:<5d} recall tune {recall['tune']:.4f} test "
-                      f"{recall['test']:.4f}   {ms['test']:7.3f} ms/q  "
-                      f"{1e3 / ms['test']:9.1f} QPS")
-
-                history.append(recall["tune"])
-                if recall["tune"] >= STOP_RECALL:
-                    break
-                if (len(history) > PLATEAU_WINDOW
-                        and abs(history[-1] - history[-1 - PLATEAU_WINDOW]) < PLATEAU_GAIN):
-                    print("    (recall has plateaued; stopping sweep)")
-                    break
-                if exact_ms is not None and ms["tune"] > exact_ms:
-                    print("    (slower than exact search; stopping sweep)")
-                    break
-
+            rows += sweep(index, sweep_values(kind, p), ctx, args,
+                          {"part": 2, "index": kind, "build_params": bstr,
+                           "build_s": build_s, "index_bytes": index_bytes})
             write_csv(path, rows, BENCH_COLUMNS)  # save after every build setting
             del index
             gc.collect()

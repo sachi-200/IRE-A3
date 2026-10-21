@@ -31,6 +31,10 @@ echo "== Part 2: HNSW, IVF-Flat, IVF-PQ =="
 $PY part2_bench.py "${QUICK[@]}"
 $PY part2_report.py "${QUICK[@]}"
 
+echo "== Part 3: compression (PQ code size, re-ranking) =="
+$PY part3_compression.py "${QUICK[@]}"
+$PY part3_report.py "${QUICK[@]}"
+
 echo "== Collect results =="
 $PY collect_results.py "${QUICK[@]}"
 

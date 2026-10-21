@@ -84,6 +84,9 @@ python3 part2_report.py      # plots/tables from whatever has finished
 | `part1_exact.py` | Part 1: exact baseline, agreement check, single vs batch timing |
 | `part2_bench.py` | Part 2: build HNSW / IVF-Flat / IVF-PQ settings and sweep efSearch / nprobe |
 | `part2_report.py` | Part 2: trade-off plots and the QPS / cost tables, from the saved CSVs |
+| `part3_compression.py` | Part 3: IVF-PQ with m = 8/16/32/64, plain and with exact re-ranking of the top 100 (SIFT) |
+| `part3_report.py` | Part 3: speed/recall and memory/recall figure and table |
+| `run_part3_server.sh` | runs Part 3 on the SLURM server (`bash` or `sbatch`) |
 | `collect_results.py` | merges per-part CSVs into `results.csv`, writes `machine.txt` |
 | `hypothesis.md` | hypotheses for Parts 3 and 4, committed before running them |
 | `run_all.sh` | runs everything |
